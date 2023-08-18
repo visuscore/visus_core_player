@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="visus_core_player"
+        android:label="VisusCore:Player"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

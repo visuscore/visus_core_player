@@ -13,9 +13,12 @@ class AppController extends ChangeNotifier {
   bool _showLoader = false;
 
   AppController(this._authenticationService, this._navigatorService) {
-    _authenticationStateSubscription = _authenticationService.currentState.listen((state) {
+    _authenticationStateSubscription =
+        _authenticationService.currentState.listen((state) {
       if (state?.state == EAuthenticationState.unauthenticated) {
         _navigatorService.pushNamedAndClearStack(RouteNames.login);
+      } else if (state?.state == EAuthenticationState.authenticated) {
+        _navigatorService.pushNamedAndClearStack(RouteNames.streams);
       }
 
       _showLoader = state?.state == EAuthenticationState.authenticating;

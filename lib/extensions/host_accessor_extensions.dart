@@ -41,10 +41,10 @@ extension HostServiceExtensions on IHostAccessor {
   }
 
   Future<String> getOpenIdUserInfoEndpoint() async =>
-    const String.fromEnvironment(
-      EnvironmentKeys.openIdUserInfoEndpoint,
-      defaultValue: EnvironmentDefaults.openIdUserInfoEndpoint,
-    ).format((await getHost())!);
+      const String.fromEnvironment(
+        EnvironmentKeys.openIdUserInfoEndpoint,
+        defaultValue: EnvironmentDefaults.openIdUserInfoEndpoint,
+      ).format((await getHost())!);
 
   Future<String> getApiBaseUrl() async {
     return const String.fromEnvironment(

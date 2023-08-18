@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:openidconnect/openidconnect.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:visus_core_player/constants/environment_defaults.dart';
 import 'package:visus_core_player/constants/environment_keys.dart';
 import 'package:visus_core_player/constants/local_storage_keys.dart';
@@ -21,16 +22,16 @@ class AuthenticationService implements IAuthenticationService {
   final IHostAccessor _hostAccessor;
   final ICredentialsAccessor _credentialsAccessor;
   final IApiClientAccessor _apiClientAccessor;
-  final StreamController<IUserModel?> _currentUser = StreamController<IUserModel?>();
-  final StreamController<AuthenticationState> _authenticationState = StreamController<AuthenticationState>();
-  
-  AuthenticationService(
-    this._localStorageService,
-    this._hostAccessor,
-    this._credentialsAccessor,
-    this._apiClientAccessor) {
+  final StreamController<IUserModel?> _currentUser =
+      BehaviorSubject<IUserModel?>();
+  final StreamController<AuthenticationState> _authenticationState =
+      BehaviorSubject<AuthenticationState>();
+
+  AuthenticationService(this._localStorageService, this._hostAccessor,
+      this._credentialsAccessor, this._apiClientAccessor) {
     _currentUser.add(null);
-    _authenticationState.add(AuthenticationState(EAuthenticationState.unauthenticated));
+    _authenticationState
+        .add(AuthenticationState(EAuthenticationState.unauthenticated));
   }
 
   @override
@@ -41,24 +42,23 @@ class AuthenticationService implements IAuthenticationService {
 
   @override
   Future<IUserModel?> login() async {
-    _authenticationState.add(AuthenticationState(EAuthenticationState.authenticating));
+    _authenticationState
+        .add(AuthenticationState(EAuthenticationState.authenticating));
 
     try {
-      if (! await _credentialsAccessor.hasCredentials()) {
+      if (!await _credentialsAccessor.hasCredentials()) {
         throw Exception('No credentials found');
       }
 
-      var clientSecret = const String.fromEnvironment(EnvironmentKeys.openIdClientSecret);
+      var clientSecret =
+          const String.fromEnvironment(EnvironmentKeys.openIdClientSecret);
       var authorizationResponse = await OpenIdConnect.authorizePassword(
         request: PasswordAuthorizationRequest(
-          clientId: const String.fromEnvironment(
-            EnvironmentKeys.openIdClientId,
-            defaultValue: EnvironmentDefaults.openIdClientId
-          ),
-          scopes: const String.fromEnvironment(
-            EnvironmentKeys.openIdScopes,
-            defaultValue: EnvironmentDefaults.openIdScopes
-          ).split(' '),
+          clientId: const String.fromEnvironment(EnvironmentKeys.openIdClientId,
+              defaultValue: EnvironmentDefaults.openIdClientId),
+          scopes: const String.fromEnvironment(EnvironmentKeys.openIdScopes,
+                  defaultValue: EnvironmentDefaults.openIdScopes)
+              .split(' '),
           clientSecret: clientSecret.isEmpty ? null : clientSecret,
           userName: (await _credentialsAccessor.getEmail())!,
           password: (await _credentialsAccessor.getPassword())!,
@@ -67,12 +67,16 @@ class AuthenticationService implements IAuthenticationService {
         ),
       );
 
-      await _localStorageService.set(LocalStorageKeys.accessToken, authorizationResponse.accessToken);
-      await _localStorageService.set(LocalStorageKeys.accessTokenType, authorizationResponse.tokenType);
+      await _localStorageService.set(
+          LocalStorageKeys.accessToken, authorizationResponse.accessToken);
+      await _localStorageService.set(
+          LocalStorageKeys.accessTokenType, authorizationResponse.tokenType);
 
-      _authenticationState.add(AuthenticationState(EAuthenticationState.authenticated));
+      _authenticationState
+          .add(AuthenticationState(EAuthenticationState.authenticated));
     } catch (exception) {
-      _authenticationState.add(AuthenticationState(EAuthenticationState.authenticationError, exception.toString()));
+      _authenticationState.add(AuthenticationState(
+          EAuthenticationState.authenticationError, exception.toString()));
 
       await _cleanUp();
 
@@ -85,16 +89,16 @@ class AuthenticationService implements IAuthenticationService {
   @override
   Future<void> logout() async {
     try {
-    await OpenIdConnect.logout(
-      request: LogoutRequest(
-        configuration: await _hostAccessor.getOpenIdConfiguration(),
-        idToken: '',
-      ),
-    );
+      await OpenIdConnect.logout(
+        request: LogoutRequest(
+          configuration: await _hostAccessor.getOpenIdConfiguration(),
+          idToken: '',
+        ),
+      );
     } catch (_) {
-
     } finally {
-      _authenticationState.add(AuthenticationState(EAuthenticationState.unauthenticated));
+      _authenticationState
+          .add(AuthenticationState(EAuthenticationState.unauthenticated));
 
       await _cleanUp();
     }
@@ -108,7 +112,8 @@ class AuthenticationService implements IAuthenticationService {
 
   Future<IUserModel?> _updateUserInfo() async {
     var httpClient = await _apiClientAccessor.getClient();
-    var response = await httpClient.get(await _hostAccessor.getOpenIdUserInfoEndpoint());
+    var response =
+        await httpClient.get(await _hostAccessor.getOpenIdUserInfoEndpoint());
 
     var user = UserModel(response.data['email'], response.data['name']);
     _currentUser.add(user);
